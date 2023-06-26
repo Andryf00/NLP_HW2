@@ -32,18 +32,19 @@ class StudentModel():
         checkpoint = "bert-base-cased"
         self.tokenizer = AutoTokenizer.from_pretrained(checkpoint)
         self.model = WSDTransformer(checkpoint)
-        self.model.device = device
-        self.model = self.model.load_from_checkpoint("hw2\\model\\fine_trained.ckpt")
+        self.model.to(device)
+        self.model = self.model.load_from_checkpoint("model\\best_93_72.ckpt")
         self.model.eval()
-        self.coarse_to_fine = self.load_mapping(())
+        self.coarse_to_fine = self.load_mapping()
 
     def predict(self, sentences: List[Dict]) -> List[List[str]]:
         # STUDENT: implement here your predict function
         # remember to respect the same order of tokens!
         list_output=[]
         for sample in sentences:
+            #print(sample)
+            list_sentence = []
             for idx in list(sample["instance_ids"].keys()):
-                list_sentence = []
                 dict={}
                 idx = int(idx)
                 sentence = sample["words"]
@@ -64,12 +65,14 @@ class StudentModel():
                         if output>curr_max: 
                             curr_max = output
                             current_prediction = sense
+                #print(current_prediction)
+                #input("....")
                 list_sentence.append(current_prediction)
             list_output.append(list_sentence)
     
         return list_output
         
-    def load_mapping():
+    def load_mapping(self):
         with open("data\\map\\coarse_fine_defs_map.json") as f:
             data = json.load(f)
         coarse_senses=list(data.keys())
