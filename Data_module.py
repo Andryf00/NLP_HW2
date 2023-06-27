@@ -1,12 +1,14 @@
-
-from cProfile import label
-from random import shuffle
 import pytorch_lightning as pl
 import json
+import torch
+import nltk
+
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer
 from tqdm import tqdm
-import torch
+from cProfile import label
+from random import shuffle
+from nltk.corpus import wordnet as wn
 
 
 
@@ -21,12 +23,17 @@ keys=list(data[sentences[0]].keys())
 #print(keys)"""
 
 class NLPDataModule(pl.LightningDataModule):
-    def __init__(self, tokenizer, data_dir: str = "path/to/dir", batch_size: int = 64):
+    def __init__(self, 
+                tokenizer,
+                batch_size: int = 64, 
+                add_example = False):
         super().__init__()
         self.coarse_data_dir = "C:\\Users\\andre\\Desktop\\NLP\\nlp2023-hw2\\data\\coarse-grained\\"
         self.fine_data_dir = "C:\\Users\\andre\\Desktop\\NLP\\nlp2023-hw2\\data\\fine-grained\\"
         self.batch_size = batch_size
         self.tokenizer = tokenizer
+        self.add_example = add_example
+        nltk.download("wordnet")
 
     def setup(self, stage: str): 
         self.coarse_to_fine = self.load_mapping("C:\\Users\\andre\\Desktop\\NLP\\nlp2023-hw2\\data\\map\\")
@@ -88,13 +95,14 @@ class NLPDataModule(pl.LightningDataModule):
                 sentence[idx] = "\""+target+"\""
                 for sense in sample["candidates"][str(idx)]:
                     for fine_sense in list(self.coarse_to_fine[sense]):
-                        #print(self.coarse_to_fine[sense])
                         value = list(fine_sense.values())
-                        #print(value)
                         key = list(fine_sense.keys())[0]
-                        #print(key)
-                        #lenghts.append(len(sentence))
                         sentence_gloss = " ".join(sentence + ["[SEP]"] + [target, ":"] + value)
+                        if self.add_example:
+                            #print(fine_sense)
+                            try: sentence_gloss+= "[SEP]" + wn.synset(key).examples()[0]
+                            except: pass
+                        
                         #print(sense, self.coarse_to_fine[sense])
                         #print(sample["senses"][str(idx)][0])
                         #print(sense)
@@ -103,10 +111,6 @@ class NLPDataModule(pl.LightningDataModule):
                         #print("final sentence:", " ".join(sentence_gloss), label)
 
                         dataset.append((sentence_gloss , label, label_fine))
-                        #print(sentence_gloss, label, label_fine)
-                        #print(sample_fine["senses"][str(idx)][0], key)
-                        #print(sample["senses"][str(idx)][0], sense)
-                        #input("------------")
         """import matplotlib.pyplot as plt
         plt.hist(lenghts)
         plt.show()

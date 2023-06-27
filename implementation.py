@@ -1,8 +1,10 @@
 import numpy as np
 from typing import List, Dict
+import nltk
 
 from hw2.stud.wsd_transformer import WSDTransformer
 from transformers import AutoTokenizer
+from nltk.corpus import wordnet as wn
 import json
 
 def build_model(device: str) -> WSDTransformer:
@@ -36,6 +38,7 @@ class StudentModel():
         self.model = self.model.load_from_checkpoint("model\\best_93_72.ckpt")
         self.model.eval()
         self.coarse_to_fine = self.load_mapping()
+        nltk.download("wordnet")
 
     def predict(self, sentences: List[Dict]) -> List[List[str]]:
         # STUDENT: implement here your predict function
@@ -57,6 +60,8 @@ class StudentModel():
                         fine_sense = list(fine_sense_dict.values())
                         sense_key = list(fine_sense_dict.keys())[0]
                         sentence_gloss = " ".join(sentence + ["[SEP]"] + [target, ":"] + fine_sense)
+                        try: sentence_gloss+= "[SEP]" + wn.synset(sense_key).examples()[0]
+                        except: pass
 
                         
                         tokenized = self.tokenizer([sentence_gloss],
